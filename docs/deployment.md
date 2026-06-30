@@ -2,7 +2,9 @@
 
 Ovaj dokument pokriva **Fazu 3**: produkcijske Kubernetes manifeste za Secure Event Ticketing Platform.
 
-Manifesti su u folderu `k8s/` i pokrivaju:
+Manifesti su u folderu `k8s/`. Arhitektura i međuservisna komunikacija opisane su u `docs/architecture.md`, a završna mapa zahtjeva je u `docs/final-checklist.md`.
+
+Manifesti pokrivaju:
 
 - `Namespace`
 - `ConfigMap`

@@ -4,7 +4,7 @@ Sample DevSecOps aplikacija za kontejnerizaciju, lokalni Compose stack, Kubernet
 
 ## Trenutni status repozitorija
 
-Repozitorij nakon **Faze 6** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow, dokumentiran rolling update/rollback postupak i incident runbook za:
+Repozitorij nakon **Faze 7** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow, dokumentiran rolling update/rollback postupak i incident runbook za:
 
 - `frontend`
 - `api`
@@ -17,8 +17,16 @@ Repozitorij nakon **Faze 6** sadrži aplikacijsku jezgru, Dockerfileove za aplik
 - quality gate prije objave imagea
 - rolling update i rollback postupak
 - incident runbook za PostgreSQL pad, loš image tag i neispravan Secret/env varijablu
+- finalnu arhitekturnu dokumentaciju i checklistu za PDF predaju
 
 ## Arhitektura aplikacije
+
+Detaljna arhitektura i međuservisna komunikacija nalaze se u:
+
+```text
+docs/architecture.md
+```
+
 
 - `frontend` - web UI za pregled evenata i kupnju karata.
 - `api` - REST API za evente, narudžbe i health/readiness provjere.
@@ -319,6 +327,23 @@ cd frontend && npm ci --omit=dev --ignore-scripts && cd ..
 cd worker && npm ci --omit=dev --ignore-scripts && cd ..
 ```
 
+## Finalna dokumentacija
+
+Završni dokumentacijski artefakti nalaze se u:
+
+```text
+docs/architecture.md
+docs/deployment.md
+docs/ci-cd.md
+docs/security/image-scan-report.md
+docs/rolling-update-rollback.md
+docs/runbook.md
+docs/final-checklist.md
+```
+
+`docs/final-checklist.md` sadrži tablicu zahtjeva iz PDF-a, lokacije implementacije, status i napomene.
+
+
 ## Datoteke relevantne za trenutne faze
 
 Faza 1 i 2:
@@ -333,6 +358,7 @@ Faza 3:
 
 - `k8s/`
 - `docs/deployment.md`
+- `docs/architecture.md`
 
 Faza 4:
 
@@ -340,11 +366,23 @@ Faza 4:
 - `docs/ci-cd.md`
 - `docs/security/image-scan-report.md`
 
-## Poznati rizici nakon Faze 4
+Faza 5:
 
-- Raniji API `uuid` dependency audit nalaz je saniran nadogradnjom na sigurniju verziju; CI gate i dalje blokira `HIGH` i `CRITICAL`, a eventualni novi `MEDIUM` nalazi trebaju se evidentirati u security izvještaju.
-- Worker nema HTTP health endpoint; u Kubernetes manifestima se koristi `exec` probe strategija.
-- Compose koristi lokalnu demo lozinku iz `.env`; produkcijski deployment mora koristiti Secret.
-- Ingress ovisi o dostupnom ingress controlleru u clusteru.
-- Objavljeni registry image tagovi još nisu upisani u Kubernetes manifeste; za produkciju treba zamijeniti lokalne `:local` tagove.
-- Rolling update/rollback dokumentacija i runbook još nisu implementirani.
+- `docs/rolling-update-rollback.md`
+
+Faza 6:
+
+- `docs/runbook.md`
+
+Faza 7:
+
+- `docs/architecture.md`
+- `docs/final-checklist.md`
+
+## Poznati rizici nakon finalizacije
+
+- Projekt nema pune unit/integration testove; CI zato koristi minimalni gate: `npm ci`, `node -c`, `npm audit` i Trivy scan.
+- Compose koristi lokalnu demo lozinku iz `.env`; produkcijski deployment mora koristiti Kubernetes Secret.
+- Ingress ovisi o dostupnom ingress controlleru u clusteru; lokalna validacija može se napraviti port-forwardom.
+- K8s manifesti koriste lokalne `:local` image tagove za lab; za produkciju treba zamijeniti registry tagovima iz CI/CD pipelinea.
+- Worker nema HTTP endpoint; u Kubernetes manifestima koristi se `exec` probe strategija.

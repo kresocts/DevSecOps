@@ -192,3 +192,9 @@ GitHub Actions deprecation warning za Node 20 action runtime smanjen je nadograd
 - `actions/checkout@v7`,
 - `actions/setup-node@v6`,
 - `actions/upload-artifact@v7`.
+
+## Finalna validacija pipelinea
+
+GitHub Actions workflow je validiran stvarnim `push` runom na `main` grani. Run `test #2` završio je sa statusom `Success`, svi matrix validate jobovi su prošli, Trivy repository/IaC scan je prošao, sva tri build-scan-publish joba su prošla i kreirana su 4 artifacta.
+
+Preostali warning za `docker/login-action@v3` odnosi se na GitHub Actions Node runtime deprecation poruku. Warning nije blokirao pipeline niti mijenja DevSecOps quality gate rezultat.

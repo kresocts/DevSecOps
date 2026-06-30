@@ -50,7 +50,7 @@ Sažetak nalaza:
 
 Odluka: ne uvoditi `.trivyignore` za ove nalaze jer postoje korektivne mjere. Quality gate ostaje postavljen na `HIGH`/`CRITICAL` i nastavlja blokirati objavu imagea dok nalaz nije saniran.
 
-Prije finalne predaje treba ponovno pokrenuti lokalni Trivy scan i GitHub Actions run te u ovaj dokument dopisati finalni rezultat.
+Finalna validacija je napravljena lokalno i kroz GitHub Actions. Lokalni Trivy image scanovi za `ticketing-api:local`, `ticketing-frontend:local` i `ticketing-worker:local` završili su s 0 `HIGH`/`CRITICAL` ranjivosti. GitHub Actions workflow run završio je sa statusom `Success` i generirao 4 artifacta.
 
 ## IaC/config scan hardening update
 
@@ -70,7 +70,7 @@ Očekivana ponovna validacija:
 trivy config --severity HIGH,CRITICAL --exit-code 1 .
 ```
 
-Očekivani rezultat: bez `HIGH`/`CRITICAL` misconfiguration nalaza.
+Finalni rezultat: `trivy config --severity HIGH,CRITICAL --exit-code 1 .` završio je bez `HIGH`/`CRITICAL` misconfiguration nalaza; svi Dockerfile i Kubernetes targeti u summaryju imaju `0`.
 
 ## Lokacija izvještaja
 
@@ -130,5 +130,5 @@ trivy image --format sarif --output reports/trivy-worker-image.sarif ticketing-w
 | SARIF report artifacti konfigurirani | gotovo |
 | HIGH/CRITICAL quality gate konfiguriran | gotovo |
 | Automatski push imagea nakon prolaska gatea | gotovo, samo za `main`, `master` i tagove |
-| Stvarni GitHub Actions run | čeka validaciju nakon pusha u GitHub |
-| Finalni scan rezultati | dopuniti nakon prvog CI runa |
+| Stvarni GitHub Actions run | gotovo, run `test #2` završio je sa `Success` |
+| Finalni scan rezultati | gotovo, lokalni image scan i config scan bez `HIGH`/`CRITICAL` nalaza |
