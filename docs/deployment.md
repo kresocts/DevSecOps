@@ -197,6 +197,24 @@ NetworkPolicy manifesti rade sljedeće:
 
 Ako tvoj CNI plugin drugačije tretira egress prema Service IP adresama, možda će trebati prilagoditi egress pravila prema cluster CIDR-u ili CNI dokumentaciji.
 
+
+## Rolling update i rollback
+
+Detaljan postupak za promjenu image taga, praćenje rollout statusa, pregled rollout historyja, rollback i validaciju nalazi se u:
+
+```text
+docs/rolling-update-rollback.md
+```
+
+Kratki primjer za API:
+
+```bash
+kubectl -n secure-ticketing set image deployment/api api=<new-image-tag>
+kubectl -n secure-ticketing rollout status deployment/api
+kubectl -n secure-ticketing rollout history deployment/api
+kubectl -n secure-ticketing rollout undo deployment/api
+```
+
 ## Brisanje deploymenta
 
 ```bash

@@ -4,7 +4,7 @@ Sample DevSecOps aplikacija za kontejnerizaciju, lokalni Compose stack, Kubernet
 
 ## Trenutni status repozitorija
 
-Repozitorij nakon **Faze 4** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste i GitHub Actions DevSecOps workflow za:
+Repozitorij nakon **Faze 5** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow i dokumentiran rolling update/rollback postupak za:
 
 - `frontend`
 - `api`
@@ -15,8 +15,9 @@ Repozitorij nakon **Faze 4** sadrži aplikacijsku jezgru, Dockerfileove za aplik
 - build container imagea
 - Trivy image/config scan
 - quality gate prije objave imagea
+- rolling update i rollback postupak
 
-Rolling update/rollback dokumentacija i runbook pripremaju se u kasnijim fazama.
+Runbook se priprema u kasnijoj fazi.
 
 ## Arhitektura aplikacije
 
@@ -240,6 +241,23 @@ Detalji su u:
 ```text
 docs/ci-cd.md
 docs/security/image-scan-report.md
+```
+
+## Rolling update i rollback
+
+Postupak promjene image taga, praćenja rollouta, pregleda rollout historyja i rollbacka dokumentiran je u:
+
+```text
+docs/rolling-update-rollback.md
+```
+
+Najvažnije naredbe:
+
+```bash
+kubectl -n secure-ticketing set image deployment/api api=<new-image-tag>
+kubectl -n secure-ticketing rollout status deployment/api
+kubectl -n secure-ticketing rollout history deployment/api
+kubectl -n secure-ticketing rollout undo deployment/api
 ```
 
 Image se objavljuje samo za `push` na `main`, `master` ili release tagove oblika `v*.*.*`. Pull request buildovi se buildaju i skeniraju, ali se ne objavljuju.
