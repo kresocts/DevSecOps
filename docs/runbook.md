@@ -1,6 +1,6 @@
 # Incident runbook
 
-Ovaj dokument pokriva **Fazu 6**: osnovni operativni runbook za incidente u Kubernetes/OpenShift deploymentu Secure Event Ticketing Platform aplikacije.
+Osnovni operativni runbook za incidente u Kubernetes/OpenShift deploymentu Secure Event Ticketing Platform aplikacije.
 
 Runbook koristi namespace:
 

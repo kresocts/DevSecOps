@@ -1,6 +1,6 @@
 # CI/CD i DevSecOps workflow
 
-Ova faza dodaje GitHub Actions workflow za validaciju, build container imagea, Trivy sigurnosno skeniranje i opcionalnu objavu imagea u GitHub Container Registry.
+GitHub Actions workflow za validaciju, build container imagea, Trivy sigurnosno skeniranje i opcionalnu objavu imagea u GitHub Container Registry.
 
 Workflow datoteka:
 
@@ -220,4 +220,4 @@ GitHub Actions deprecation warning za Node 20 action runtime smanjen je nadograd
 
 GitHub Actions workflow je validiran stvarnim `push` runom na `main` grani. Run `test #2` završio je sa statusom `Success`, svi matrix validate jobovi su prošli, Trivy repository/IaC scan je prošao, sva tri build-scan-publish joba su prošla i kreirana su 4 artifacta.
 
-Preostali warning za `docker/login-action@v3` odnosi se na GitHub Actions Node runtime deprecation poruku. Warning nije blokirao pipeline niti mijenja DevSecOps quality gate rezultat.
+Raniji warning za `docker/login-action@v3` uklonjen je nadogradnjom na `docker/login-action@v4`. Nakon završnih izmjena GitHub Actions workflow je ponovno pokrenut pushom i prošao je bez greške.

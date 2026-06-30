@@ -1,141 +1,80 @@
 # Secure Event Ticketing Platform
 
-Sample DevSecOps aplikacija za kontejnerizaciju, lokalni Compose stack, Kubernetes deployment manifeste i CI/CD sigurnosni workflow.
+Projekt demonstrira lokalni razvoj u kontejnerima, sigurnu izradu i skeniranje container imagea, CI/CD, Kubernetes deployment, rolling update/rollback i troubleshooting dokumentaciju.
 
-## Trenutni status repozitorija
+## 1. Kratki sažetak
 
-Repozitorij nakon **Faze 7** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow, dokumentiran rolling update/rollback postupak i incident runbook za:
+Projekt implementira višeslojnu aplikaciju sa sljedećim servisima:
 
-- `frontend`
-- `api`
-- `worker`
-- `postgres`
-- `redis`
-- CI/CD validaciju
-- build container imagea
-- Trivy image/config scan
-- quality gate prije objave imagea
-- rolling update i rollback postupak
-- incident runbook za PostgreSQL pad, loš image tag i neispravan Secret/env varijablu
-- finalnu arhitekturnu dokumentaciju i checklistu za PDF predaju
+| Servis     | Uloga                                                      | Lokacija                                                       |
+|------------|------------------------------------------------------------|----------------------------------------------------------------|
+| `frontend` | Web sučelje za pregled evenata i kupnju karata             | `frontend/`                                                    |
+| `api`      | REST API, health/readiness endpointi i zaprimanje narudžbi | `api/`                                                         |
+| `worker`   | Pozadinska obrada narudžbi iz Redis queuea                 | `worker/`                                                      |   
+| `postgres` | Trajna pohrana narudžbi                                    | `infra/postgres/init.sql`, `compose.yaml`, `k8s/postgres.yaml` |
+| `redis`    | Queue/cache sloj                                           | `compose.yaml`, `k8s/redis.yaml`                               |
+|------------|------------------------------------------------------------|----------------------------------------------------------------|
 
-## Arhitektura aplikacije
 
-Detaljna arhitektura i međuservisna komunikacija nalaze se u:
+Osnovni tok aplikacije:
+
+```text
+Browser -> frontend -> API -> Redis queue -> worker -> PostgreSQL
+```
+
+Detaljna arhitektura, međuservisna komunikacija i usporedba kontejnera s virtualnim mašinama nalaze se u:
 
 ```text
 docs/architecture.md
 ```
 
-
-- `frontend` - web UI za pregled evenata i kupnju karata.
-- `api` - REST API za evente, narudžbe i health/readiness provjere.
-- `worker` - pozadinska obrada Redis queue poruka.
-- `postgres` - trajna pohrana narudžbi, inicijalizacija kroz `infra/postgres/init.sql`.
-- `redis` - queue/cache sloj za narudžbe.
-
-Tok osnovnog workflowa:
+## 2. Struktura repozitorija
 
 ```text
-browser -> frontend -> /config -> browser -> api -> redis queue -> worker -> postgres
+.
+├── api/                         # REST API servis
+├── frontend/                    # Web frontend servis
+├── worker/                      # Background worker servis
+├── infra/postgres/init.sql      # Inicijalizacija PostgreSQL baze
+├── compose.yaml                 # Lokalni Docker/Podman Compose stack
+├── .env.example                 # Primjer lokalnih environment varijabli
+├── k8s/                         # Kubernetes manifesti
+├── .github/workflows/           # GitHub Actions CI/CD workflow
+└── docs/                        # Arhitektura, runbook
 ```
 
-Frontend browseru vraća `API_BASE_URL`, browser direktno zove API, API stavlja narudžbu u Redis queue, a worker je obrađuje i sprema u PostgreSQL.
+Najvažniji dokumenti za pregled:
 
-## Preduvjeti
+| Dokument | Namjena |
+|--------------------------------------|---------------------------------------------------------|
+| `README.md`                          | Detaljne upute za lokalno pokretanje i validaciju       |
+| `docs/architecture.md`               | Arhitektura, servisi, komunikacija, kontejneri vs VM.   |
+| `docs/security/image-scan-report.md` | Sigurnosni scan imagea i konfiguracije                  |
+| `docs/runbook.md`                    | Incident runbook za troubleshooting                     |
+|--------------------------------------|---------------------------------------------------------|
 
-Jedan od sljedećih alata:
 
-- Docker Desktop s `docker compose`
-- Docker Engine s Compose pluginom
-- Podman s Compose kompatibilnim alatom
+## 3. Lokalno pokretanje kroz Compose
 
-Za lokalni razvoj nije potrebno lokalno instalirati PostgreSQL ni Redis jer ih podiže Compose stack.
+Preduvjeti:
 
-## Environment varijable
+- Docker Desktop ili Docker Engine s Compose pluginom
+- Alternativno Podman s Compose kompatibilnim alatom
 
-Kopiraj primjer konfiguracije:
+Pokretanje cijelog lokalnog stacka:
 
 ```bash
 cp .env.example .env
-```
-
-Važne varijable:
-
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_HOST`
-- `POSTGRES_PORT`
-- `REDIS_HOST`
-- `REDIS_PORT`
-- `API_PORT`
-- `FRONTEND_PORT`
-- `API_BASE_URL`
-- `QUEUE_NAME`
-- `NODE_ENV`
-
-Za lokalni demo `.env.example` koristi vrijednost `POSTGRES_PASSWORD=change_me_local`. Za produkciju se ta vrijednost ne smije koristiti; u kasnijoj Kubernetes/OpenShift fazi tajne idu kroz Secret.
-
-## Lokalni startup
-
-Pokretanje cijelog stacka jednom naredbom:
-
-```bash
-docker compose up --build
-```
-
-Pokretanje u pozadini:
-
-```bash
 docker compose up --build -d
 ```
 
-Podman varijanta ovisi o instalaciji, ali najčešći oblik je:
+Provjera statusa:
 
 ```bash
-podman compose up --build
+docker compose ps
 ```
 
-## Lokalni shutdown
-
-Zaustavljanje stacka bez brisanja PostgreSQL podataka:
-
-```bash
-docker compose down
-```
-
-Zaustavljanje i brisanje PostgreSQL volumea:
-
-```bash
-docker compose down -v
-```
-
-Volume koji čuva PostgreSQL podatke zove se:
-
-```text
-secure-event-ticketing_postgres_data
-```
-
-## Hot reload u razvoju
-
-Compose koristi `dev` stage iz Dockerfileova za `api`, `frontend` i `worker`. Source folderi se mountaju u containere:
-
-- `./api/src:/app/src:ro`
-- `./frontend/src:/app/src:ro`
-- `./worker/src:/app/src:ro`
-
-Aplikacijski servisi se pokreću kroz `npm run dev`, odnosno `nodemon`, pa se promjene u `src` folderima automatski učitavaju gdje je to smisleno.
-
-Ako mijenjaš `package.json` ili `package-lock.json`, ponovno izgradi image:
-
-```bash
-docker compose build --no-cache api frontend worker
-```
-
-## Health i readiness provjere
-
-Kada je stack pokrenut:
+Health/readiness validacija:
 
 ```bash
 curl http://localhost:8080/healthz
@@ -144,66 +83,54 @@ curl http://localhost:3000/healthz
 curl http://localhost:3000/config
 ```
 
-Očekivani API health odgovor:
-
-```json
-{"status":"ok","service":"api"}
-```
-
-Očekivani API readiness odgovor kada su PostgreSQL i Redis dostupni:
+Očekivani API readiness odgovor:
 
 ```json
 {"status":"ready"}
 ```
 
-Provjera statusa containera:
-
-```bash
-docker compose ps
-```
-
-Pregled logova:
-
-```bash
-docker compose logs -f api
-docker compose logs -f worker
-docker compose logs -f postgres
-docker compose logs -f redis
-```
-
-## Osnovni workflow kupnje karte
-
-1. Otvori frontend:
-
-```text
-http://localhost:3000
-```
-
-2. Odaberi event, upiši email i količinu, zatim klikni `Purchase`.
-
-3. Ili napravi isti workflow preko API-ja:
+Osnovni workflow kupnje karte:
 
 ```bash
 curl -X POST http://localhost:8080/tickets/purchase \
   -H "Content-Type: application/json" \
   -d '{"eventId":"evt-1001","customerEmail":"student@example.com","quantity":2}'
-```
 
-4. Provjeri da je worker obradio narudžbu i spremio je u PostgreSQL:
-
-```bash
 curl http://localhost:8080/tickets/orders
 ```
 
-5. Ako narudžba ne dođe odmah, pogledaj worker logove:
+Zaustavljanje stacka:
 
 ```bash
-docker compose logs -f worker
+docker compose down
 ```
 
-## Build produkcijskih imagea
+Brisanje lokalnog PostgreSQL volumea:
 
-Dockerfileovi i dalje imaju produkcijski `runtime` stage koji koristi `npm ci --omit=dev`, non-root korisnika i ne zapisuje tajne u image.
+```bash
+docker compose down -v
+```
+
+## 4. Container imagei
+
+Aplikacijski servisi imaju vlastite Dockerfileove:
+
+```text
+api/Dockerfile
+frontend/Dockerfile
+worker/Dockerfile
+```
+
+Implementirane sigurnosne prakse:
+
+- multi-stage build,
+- minimalna runtime slika na temelju `node:20-alpine`,
+- production dependencyji,
+- non-root korisnik `node`,
+- `.dockerignore` datoteke,
+- tajne se ne zapisuju u image.
+
+Ručni build imagea:
 
 ```bash
 docker build -t ticketing-api:local ./api
@@ -211,7 +138,7 @@ docker build -t ticketing-frontend:local ./frontend
 docker build -t ticketing-worker:local ./worker
 ```
 
-Provjera da containeri ne rade kao root:
+Provjera non-root korisnika:
 
 ```bash
 docker run --rm ticketing-api:local id
@@ -219,29 +146,66 @@ docker run --rm ticketing-frontend:local id
 docker run --rm ticketing-worker:local id
 ```
 
-Očekivano je `uid=1000(node)`.
+Očekivano je da containeri rade kao `uid=1000(node)`.
 
+## 5. Kubernetes deployment
 
-
-## Incident runbook
-
-Operativni runbook za incidente nalazi se u:
+Kubernetes manifesti nalaze se u:
 
 ```text
-docs/runbook.md
+k8s/
 ```
 
-Pokriveni scenariji:
+Uključeni su:
 
-- pad PostgreSQL baze,
-- loš image tag,
-- neispravan Secret ili environment varijabla.
+- `Namespace`,
+- `ConfigMap`,
+- `Secret` primjer,
+- `Deployment` za frontend, API, worker i Redis,
+- `StatefulSet` za PostgreSQL,
+- `Service` objekti,
+- `Ingress`,
+- readiness/liveness probeovi,
+- resource requests/limits,
+- `ServiceAccount`,
+- RBAC,
+- `NetworkPolicy`,
+- Kustomize ulazna datoteka `k8s/kustomization.yaml`.
 
-Svaki scenarij sadrži simptom, moguće uzroke, dijagnostičke naredbe, korektivnu mjeru, validaciju i rollback gdje je primjenjivo.
+Primjer kreiranja Secreta prije deploya:
 
-## CI/CD i DevSecOps
+```bash
+kubectl create namespace secure-ticketing
+kubectl -n secure-ticketing create secret generic ticketing-secrets \
+  --from-literal=POSTGRES_PASSWORD='change-this-password'
+```
 
-GitHub Actions workflow nalazi se u:
+Deploy:
+
+```bash
+kubectl apply -k k8s/
+```
+
+Provjera:
+
+```bash
+kubectl -n secure-ticketing get pods
+kubectl -n secure-ticketing get svc
+kubectl -n secure-ticketing get ingress
+```
+
+Port-forward validacija API-ja:
+
+```bash
+kubectl -n secure-ticketing port-forward svc/api 8080:8080
+curl http://localhost:8080/readyz
+```
+
+Napomena: `Ingress` manifest je pripremljen za Kubernetes okruženje s instaliranim ingress controllerom. U lokalnoj validaciji funkcionalnost je moguće provjeriti i preko `port-forward` pristupa.
+
+## 6. CI/CD i DevSecOps
+
+CI/CD workflow nalazi se u:
 
 ```text
 .github/workflows/ci-devsecops.yml
@@ -249,140 +213,97 @@ GitHub Actions workflow nalazi se u:
 
 Workflow radi:
 
-- checkout repozitorija,
-- instalaciju produkcijskih dependencyja za `api`, `frontend` i `worker`,
-- minimalnu validaciju kroz `node -c`,
-- `npm audit` gate za `HIGH` i veće nalaze,
-- build container imagea,
-- Trivy scan Kubernetes/Docker konfiguracije,
-- Trivy scan container imagea,
-- quality gate za `HIGH` i `CRITICAL` image ranjivosti,
-- upload SARIF reporta kao GitHub Actions artifact,
-- opcionalni push imagea u GHCR nakon prolaska gatea.
+1. checkout koda,
+2. instalaciju dependencyja,
+3. sintaksnu validaciju Node.js servisa,
+4. `npm audit` provjeru,
+5. Docker build za aplikacijske servise,
+6. Trivy config/IaC scan,
+7. Trivy image scan,
+8. blocking quality gate za `HIGH` i `CRITICAL` nalaze,
+9. upload sigurnosnih artifacta,
+10. opcionalni push imagea u GHCR za `main`/tagove.
 
-Detalji su u:
+Zadnja validacija:
+
+- GitHub Actions run nakon završnih izmjena prošao je bez greške,
+- artifacti su uploadani,
+- Trivy config/IaC blocking gate je dodan i validiran lokalno.
+
+Lokalna Trivy config provjera:
+
+```bash
+trivy config --severity HIGH,CRITICAL --exit-code 1 .
+```
+
+Ova naredba prolazi bez greške.
+
+Detalji CI/CD procesa, politike tagiranja i mjerljivog napretka isporuke nalaze se u:
 
 ```text
 docs/ci-cd.md
-docs/security/image-scan-report.md
 ```
 
-## Rolling update i rollback
+## 7. Rolling update i rollback
 
-Postupak promjene image taga, praćenja rollouta, pregleda rollout historyja i rollbacka dokumentiran je u:
+Postupak je dokumentiran u:
 
 ```text
 docs/rolling-update-rollback.md
 ```
 
-Najvažnije naredbe:
+Osnovne naredbe:
 
 ```bash
-kubectl -n secure-ticketing set image deployment/api api=<new-image-tag>
 kubectl -n secure-ticketing rollout status deployment/api
 kubectl -n secure-ticketing rollout history deployment/api
 kubectl -n secure-ticketing rollout undo deployment/api
 ```
 
-Image se objavljuje samo za `push` na `main`, `master` ili release tagove oblika `v*.*.*`. Pull request buildovi se buildaju i skeniraju, ali se ne objavljuju.
+Demonstrirano je:
 
-## Kubernetes deployment manifesti
+- promjena image taga,
+- uspješan rolling update,
+- rollback na prethodnu verziju,
+- validacija nakon rollbacka preko `/readyz` endpointa.
 
-Kubernetes manifesti nalaze se u folderu `k8s/`. Detaljne upute su u `docs/deployment.md`.
+## 8. Troubleshooting / runbook
 
-Minimalni redoslijed za deploy:
-
-```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl -n secure-ticketing create secret generic ticketing-secrets \
-  --from-literal=POSTGRES_PASSWORD='<strong-password>'
-kubectl apply -k k8s/
-```
-
-Za lokalni cluster koji koristi lokalno buildane imagee prvo izgradi:
-
-```bash
-docker build -t ticketing-api:local ./api
-docker build -t ticketing-frontend:local ./frontend
-docker build -t ticketing-worker:local ./worker
-```
-
-Za produkcijski cluster zamijeni lokalne image tagove registry tagovima prije deploya. Secret se ne commita u repozitorij; `k8s/secret.example.yaml` je samo primjer.
-
-## Testovi i validacija koda
-
-Automatizirani testovi još ne postoje. Minimalna sintaktička validacija:
-
-```bash
-node -c api/src/server.js
-node -c frontend/src/server.js
-node -c worker/src/worker.js
-```
-
-Minimalna dependency validacija:
-
-```bash
-cd api && npm ci --omit=dev --ignore-scripts && cd ..
-cd frontend && npm ci --omit=dev --ignore-scripts && cd ..
-cd worker && npm ci --omit=dev --ignore-scripts && cd ..
-```
-
-## Finalna dokumentacija
-
-Završni dokumentacijski artefakti nalaze se u:
+Runbook se nalazi u:
 
 ```text
-docs/architecture.md
-docs/deployment.md
-docs/ci-cd.md
-docs/security/image-scan-report.md
-docs/rolling-update-rollback.md
 docs/runbook.md
-docs/final-checklist.md
 ```
 
-`docs/final-checklist.md` sadrži tablicu zahtjeva iz PDF-a, lokacije implementacije, status i napomene.
+Pokriveni incidentni scenariji:
 
+1. pad PostgreSQL baze,
+2. loš image tag,
+3. neispravan Kubernetes Secret ili environment varijabla.
 
-## Datoteke relevantne za trenutne faze
+Za svaki incident dokumentirani su:
 
-Faza 1 i 2:
+- simptom,
+- mogući uzrok,
+- dijagnostičke naredbe,
+- korektivna mjera,
+- validacija nakon popravka,
+- rollback/restore napomena gdje je primjenjivo.
 
-- `compose.yaml`
-- `.env.example`
-- `api/Dockerfile`
-- `frontend/Dockerfile`
-- `worker/Dockerfile`
+## 9. Mapiranje na ishode I1-I6
 
-Faza 3:
+| Ishod                                       | Implementacija                                                                         | Dokaz                                                                                              |
+|---------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| I1 — procjena upotrebe kontejnera i servisa | Servisna arhitektura, komunikacija i usporedba kontejnera s VM pristupom               | `docs/architecture.md`, `compose.yaml`, `k8s/`                                                     |
+| I2 — sigurno upravljanje container imageima | Multi-stage build, non-root korisnik, minimalne runtime slike, Trivy scan              | `api/Dockerfile`, `frontend/Dockerfile`, `worker/Dockerfile`, `docs/security/image-scan-report.md` |
+| I3 — ubrzana isporuka aplikacije            | GitHub Actions build/validacija/scan/publish workflow i dokumentirana metrika trajanja | `.github/workflows/ci-devsecops.yml`, `docs/ci-cd.md`                                              |
+| I4 — DevSecOps metodologija                 | `npm audit`, Trivy image scan, Trivy config/IaC blocking gate, quality gate            | `.github/workflows/ci-devsecops.yml`, `docs/security image-scan-report.md`                         |
+| I5 — rješavanje problema isporuke           | Incident runbook i rolling update/rollback dokumentacija                               | `docs/runbook.md`, `docs/rolling-update-rollback.md`                                               |
+| I6 — orkestracija u složenijem scenariju    | Kubernetes manifesti, probes, resources, Ingress, Secret, RBAC, NetworkPolicy          | `k8s/`, `docs/deployment.md`                                                                       |
+|---------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 
-- `k8s/`
-- `docs/deployment.md`
-- `docs/architecture.md`
+## 10. Zaključak
 
-Faza 4:
+Projekt pokriva tražene artefakte: source kod servisa, Dockerfileove, Compose lokalni stack, Kubernetes manifeste, sigurnosni scan imagea i konfiguracije, CI/CD pipeline, dokumentaciju za lokalno i produkcijsko pokretanje, runbook i finalnu checklistu.
 
-- `.github/workflows/ci-devsecops.yml`
-- `docs/ci-cd.md`
-- `docs/security/image-scan-report.md`
-
-Faza 5:
-
-- `docs/rolling-update-rollback.md`
-
-Faza 6:
-
-- `docs/runbook.md`
-
-Faza 7:
-
-- `docs/architecture.md`
-- `docs/final-checklist.md`
-
-## Poznati rizici nakon finalizacije
-
-- Projekt nema pune unit/integration testove; CI zato koristi minimalni gate: `npm ci`, `node -c`, `npm audit` i Trivy scan.
-- Compose koristi lokalnu demo lozinku iz `.env`; produkcijski deployment mora koristiti Kubernetes Secret.
-- Ingress ovisi o dostupnom ingress controlleru u clusteru; lokalna validacija može se napraviti port-forwardom.
-- K8s manifesti koriste lokalne `:local` image tagove za lab; za produkciju treba zamijeniti registry tagovima iz CI/CD pipelinea.
-- Worker nema HTTP endpoint; u Kubernetes manifestima koristi se `exec` probe strategija.
+Cilj projekta nije samo pokrenuti aplikaciju, nego demonstrirati cijeli DevSecOps tok isporuke: lokalni razvoj, build imagea, sigurnosne provjere, orkestraciju, rollout/rollback i troubleshooting.

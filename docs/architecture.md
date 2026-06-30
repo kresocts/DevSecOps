@@ -5,25 +5,30 @@ Secure Event Ticketing Platform je višeslojna demo aplikacija za DevOps/DevSecO
 
 ## Zašto kontejneri umjesto virtualnih mašina
 
-| Kriterij | Kontejneri | Virtualne mašine |
-|---|---|---|
-| Pokretanje | Brže pokretanje jer dijele kernel hosta | Sporije pokretanje jer svaki VM ima vlastiti OS |
-| Potrošnja resursa | Manja potrošnja memorije i diska | Veća potrošnja zbog cijelog guest OS-a |
-| CI/CD | Pogodni za automatizirani build, scan, tagiranje i deploy | Teže ih je brzo graditi, skenirati i distribuirati |
-| Izolacija | Dovoljna za aplikacijske servise uz non-root, minimalne slike i NetworkPolicy | Jača izolacija, ali uz veći operativni trošak |
-| Primjena u ovom projektu | Prikladni za frontend, API, worker, Redis i PostgreSQL u DevSecOps pipelineu | Pretjerani za ovu višeslojnu aplikaciju i sporiji za lokalni razvoj |
+|--------------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Kriterij                 | Kontejneri                                                                    | Virtualne mašine                                                    |
+|--------------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Pokretanje               | Brže pokretanje jer dijele kernel hosta                                       | Sporije pokretanje jer svaki VM ima vlastiti OS                     |
+| Potrošnja resursa        | Manja potrošnja memorije i diska                                              | Veća potrošnja zbog cijelog guest OS-a                              |   
+| CI/CD                    | Pogodni za automatizirani build, scan, tagiranje i deploy                     | Teže ih je brzo graditi, skenirati i distribuirati                  |
+| Izolacija                | Dovoljna za aplikacijske servise uz non-root, minimalne slike i NetworkPolicy | Jača izolacija, ali uz veći operativni trošak                       |
+| Primjena u ovom projektu | Prikladni za frontend, API, worker, Redis i PostgreSQL u DevSecOps pipelineu  | Pretjerani za ovu višeslojnu aplikaciju i sporiji za lokalni razvoj |
+|--------------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------|
+
 
 Za Secure Event Ticketing Platform kontejneri su bolji izbor jer omogućuju standardizirano lokalno pokretanje kroz Compose, ponovljiv build i skeniranje imagea kroz CI/CD te jednostavan prijenos iste aplikacije na Kubernetes/OpenShift. Virtualne mašine bi dale jaču izolaciju, ali bi povećale vrijeme isporuke, potrošnju resursa i kompleksnost održavanja za ovaj projektni scenarij.
 
 ## Servisi
 
-| Servis | Uloga | Runtime / image | Port | State |
-|---|---|---|---:|---|
-| `frontend` | Web UI i `/config` endpoint za browser konfiguraciju | Node.js + Express | `3000` | stateless |
-| `api` | REST API za evente, narudžbe, health i readiness | Node.js + Express | `8080` | stateless |
-| `worker` | Pozadinska obrada narudžbi iz Redis queuea | Node.js | nema HTTP port | stateless proces |
-| `postgres` | Trajna pohrana obrađenih narudžbi | PostgreSQL 16 Alpine | `5432` | stateful |
-| `redis` | Queue/cache sloj za narudžbe | Redis 7 Alpine | `6379` | ephemeral queue/cache |
+|------------|----------------------------------------------------------|--------------------------|--------|-----------------------|
+| Servis     | Uloga                                                    | Runtime / image          | Port   | State                 |
+|------------|----------------------------------------------------------|--------------------------|--------|-----------------------|
+| `frontend` | Web UI i `/config` endpoint za browser konfiguraciju     | Node.js + Express        | `3000` | stateless             |
+| `api`.     | REST API za evente, narudžbe, health i readiness         | Node.js + Express        | `8080` | stateless             |
+| `worker`   | Pozadinska obrada narudžbi iz Redis queuea               | Node.js | nema HTTP port |        | stateless proces      |
+| `postgres` | Trajna pohrana obrađenih narudžbi                        | PostgreSQL 16 Alpine     | `5432` | stateful              |
+| `redis`    | Queue/cache sloj za narudžbe                             | Redis 7 Alpine           | `6379` | ephemeral queue/cache |
+|------------|----------------------------------------------------------|--------------------------|--------|-----------------------|
 
 ## Struktura repozitorija
 
@@ -96,13 +101,16 @@ U lokalnom Compose okruženju browser direktno zove `http://localhost:8080`. U K
 
 ## API endpointi
 
-| Endpoint | Metoda | Namjena |
-|---|---|---|
-| `/healthz` | `GET` | osnovni liveness health API servisa |
-| `/readyz` | `GET` | readiness provjera PostgreSQL i Redis konekcije |
-| `/events` | `GET` | lista demo evenata |
-| `/tickets/purchase` | `POST` | validira narudžbu i stavlja je u Redis queue |
-| `/tickets/orders` | `GET` | čita obrađene narudžbe iz PostgreSQL-a |
+|---------------------|--------|-------------------------------------------------|
+| Endpoint            | Metoda | Namjena                                         |
+|---------------------|--------|-------------------------------------------------|
+| `/healthz`          | `GET`  | osnovni liveness health API servisa             |
+| `/readyz`           | `GET`  | readiness provjera PostgreSQL i Redis konekcije |
+| `/events`           | `GET`  | lista demo evenata                              |
+| `/tickets/purchase` | `POST` | validira narudžbu i stavlja je u Redis queue    |
+| `/tickets/orders`   | `GET`  | čita obrađene narudžbe iz PostgreSQL-a          |
+|---------------------|--------|-------------------------------------------------|
+
 
 API podržava i `/api/...` prefiks za Ingress scenarij; zahtjev `/api/events` interno se mapira na `/events`.
 
@@ -142,21 +150,22 @@ U Kubernetes okruženju PostgreSQL radi kao `StatefulSet` s PVC-om.
 
 ## Environment varijable
 
-| Varijabla | Koristi | Opis |
-|---|---|---|
-| `POSTGRES_DB` | API, worker, PostgreSQL | naziv baze |
-| `POSTGRES_USER` | API, worker, PostgreSQL | korisnik baze |
-| `POSTGRES_PASSWORD` | API, worker, PostgreSQL | lozinka, u produkciji Secret |
-| `POSTGRES_HOST` | API, worker | host PostgreSQL servisa |
-| `POSTGRES_PORT` | API, worker | port PostgreSQL servisa |
-| `REDIS_HOST` | API, worker | host Redis servisa |
-| `REDIS_PORT` | API, worker | port Redis servisa |
-| `API_PORT` | API | HTTP port API-ja |
-| `FRONTEND_PORT` | frontend | HTTP port frontenda |
-| `API_BASE_URL` | frontend | API URL koji frontend vraća browseru |
-| `QUEUE_NAME` | API, worker | Redis queue/list name |
-| `NODE_ENV` | frontend, API, worker | runtime mode |
-
+|---------------------|-------------------------|--------------------------------------|
+| Varijabla           | Koristi                 | Opis                                 |
+|---------------------|-------------------------|--------------------------------------|
+| `POSTGRES_DB`       | API, worker, PostgreSQL | naziv baze                           |
+| `POSTGRES_USER`     | API, worker, PostgreSQL | korisnik baze                        |
+| `POSTGRES_PASSWORD` | API, worker, PostgreSQL | lozinka, u produkciji Secret         |
+| `POSTGRES_HOST`     | API, worker             | host PostgreSQL servisa              |
+| `POSTGRES_PORT`     | API, worker             | port PostgreSQL servisa              |
+| `REDIS_HOST`        | API, worker             | host Redis servisa                   |
+| `REDIS_PORT`        | API, worker             | port Redis servisa                   |
+| `API_PORT`          | API                     | HTTP port API-ja                     |
+| `FRONTEND_PORT`     | frontend                | HTTP port frontenda                  |
+| `API_BASE_URL`      | frontend                | API URL koji frontend vraća browseru |
+| `QUEUE_NAME`        | API, worker             | Redis queue/list name                |
+| `NODE_ENV`          | frontend, API, worker   | runtime mode                         |
+|---------------------|-------------------------|--------------------------------------|
 
 ### Napomena o lokalnim fallback vrijednostima
 
@@ -198,18 +207,21 @@ docs/deployment.md
 
 ## Sigurnosne kontrole
 
-| Kontrola | Implementacija |
-|---|---|
-| Non-root runtime | Dockerfileovi koriste `USER node`; K8s securityContext koristi `runAsNonRoot` |
-| Minimalniji runtime image | multi-stage Dockerfileovi s runtime stageom i produkcijskim dependencyjima |
-| Bez hardkodiranih produkcijskih tajni | `.env.example` je samo lokalni primjer; K8s koristi Secret |
-| Read-only root filesystem | K8s workloadi koriste `readOnlyRootFilesystem: true` gdje je primjenjivo |
-| Capabilities drop | K8s workloadi dropaju Linux capabilities |
-| RBAC least privilege | ServiceAccount token nije automatski mountan; Role nema API ovlasti |
-| Network segmentation | default deny NetworkPolicy + eksplicitno dopušteni tokovi |
-| Image scanning | Trivy image scan u GitHub Actions workflowu |
-| IaC scanning | Trivy config scan za Docker/K8s konfiguraciju |
-| Quality gate | HIGH/CRITICAL nalazi blokiraju image publish |
+|-----------------------------------------|-------------------------------------------------------------------------------|
+| Kontrola                                | Implementacija                                                                |
+|-----------------------------------------|-------------------------------------------------------------------------------|
+| Non-root runtime                        | Dockerfileovi koriste `USER node`; K8s securityContext koristi `runAsNonRoot` |
+| Minimalniji runtime image               | multi-stage Dockerfileovi s runtime stageom i produkcijskim dependencyjima    |
+| Bez hardkodiranih produkcijskih tajni   | `.env.example` je samo lokalni primjer; K8s koristi Secret                    |
+| Read-only root filesystem               | K8s workloadi koriste `readOnlyRootFilesystem: true` gdje je primjenjivo.     |
+| Capabilities drop                       | K8s workloadi dropaju Linux capabilities                                      |
+| RBAC least privilege                    | ServiceAccount token nije automatski mountan; Role nema API ovlasti           |
+| Network segmentation                    | default deny NetworkPolicy + eksplicitno dopušteni tokovi                     |
+| Image scanning                          | Trivy image scan u GitHub Actions workflowu                                   |
+| IaC scanning                            | Trivy config scan za Docker/K8s konfiguraciju                                 |
+| Quality gate                            | HIGH/CRITICAL nalazi blokiraju image publish                                  |
+|-----------------------------------------|-------------------------------------------------------------------------------|
+
 
 ## Observability i troubleshooting
 

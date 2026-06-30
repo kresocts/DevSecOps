@@ -108,7 +108,7 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Rollback | gotovo | rollback vratio image na `ticketing-api:local`, `/readyz` ostao `ready` |
 | Trivy image scan | gotovo | API, frontend i worker: 0 HIGH/CRITICAL vulnerabilities |
 | Trivy config/IaC scan | gotovo | svi Docker/K8s targets: 0 HIGH/CRITICAL misconfigurations |
-| GitHub Actions run | gotovo | workflow run `test #2` završio sa `Success`, 4 artifacta; nakon završnih izmjena treba ponovno pokrenuti run |
+| GitHub Actions run | gotovo | GitHub Actions run nakon završnih izmjena prošao je bez greške; artifacti su uploadani |
 
 ## Preostali rizici / ograničenja
 
@@ -120,5 +120,10 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Compose izlaže PostgreSQL i Redis portove na host | ok za dev | u produkciji su interni ClusterIP servisi i NetworkPolicy |
 | `.env.example` ima demo lozinku | ok za lokalni primjer | produkcija koristi Kubernetes Secret |
 
-| Kriterij kontejneri vs VM za I1 | gotovo | Kontejneri su uspoređeni s virtualnim mašinama u `docs/architecture.md` |
-| Metrika ubrzanja CI/CD za I3 | gotovo | Zadnji validirani run trajao je približno 1m20 i dokumentiran je u `docs/ci-cd.md` |
+## Zatvoreni rizici nakon završnih izmjena
+
+| Rizik | Status | Dokaz |
+|---|---|---|
+| Kriterij kontejneri vs VM za I1 | zatvoreno | Kontejneri su uspoređeni s virtualnim mašinama u `docs/architecture.md` |
+| Metrika ubrzanja CI/CD za I3 | zatvoreno | Zadnji validirani run trajao je približno 1m20 i dokumentiran je u `docs/ci-cd.md` |
+| Trivy IaC/config blocking gate | zatvoreno | `trivy config --severity HIGH,CRITICAL --exit-code 1 .` prolazi bez greške; workflow sadrži odvojeni blocking gate |
