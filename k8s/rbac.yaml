@@ -1,0 +1,40 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ticketing-no-api-access
+  namespace: secure-ticketing
+  labels:
+    app.kubernetes.io/name: secure-event-ticketing
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ticketing-app-no-api-access
+  namespace: secure-ticketing
+  labels:
+    app.kubernetes.io/name: secure-event-ticketing
+subjects:
+  - kind: ServiceAccount
+    name: ticketing-app
+    namespace: secure-ticketing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ticketing-no-api-access
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ticketing-data-no-api-access
+  namespace: secure-ticketing
+  labels:
+    app.kubernetes.io/name: secure-event-ticketing
+subjects:
+  - kind: ServiceAccount
+    name: ticketing-data
+    namespace: secure-ticketing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ticketing-no-api-access
