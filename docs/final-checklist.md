@@ -58,8 +58,8 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | RBAC least privilege | Kubernetes security | `k8s/rbac.yaml` | gotovo | Role bez pravila, token automount isključen |
 | NetworkPolicy | Kubernetes security | `k8s/networkpolicy.yaml` | gotovo | default deny + dopušteni tokovi |
 | Skeniranje slika prije deploya | DevSecOps | `.github/workflows/ci-devsecops.yml` | gotovo | Trivy image scan prije push/publish koraka |
-| Sigurnosne provjere u CI/CD toku | DevSecOps | `.github/workflows/ci-devsecops.yml` | gotovo | npm audit, Trivy config scan, Trivy image scan |
-| Quality gate prije objave/deploya | DevSecOps | `.github/workflows/ci-devsecops.yml` | gotovo | HIGH/CRITICAL image nalazi ruše job |
+| Sigurnosne provjere u CI/CD toku | DevSecOps | `.github/workflows/ci-devsecops.yml` | gotovo | npm audit, Trivy config scan s blocking gateom, Trivy image scan |
+| Quality gate prije objave/deploya | DevSecOps | `.github/workflows/ci-devsecops.yml` | gotovo | HIGH/CRITICAL image i IaC/config nalazi ruše job |
 | Build i opcionalna objava imagea u registru | CI/CD | `.github/workflows/ci-devsecops.yml`, `docs/ci-cd.md` | gotovo | GHCR push nakon quality gatea za `main`/tagove |
 | Tagging imagea | CI/CD | `.github/workflows/ci-devsecops.yml`, `docs/ci-cd.md` | gotovo | branch/tag + short SHA i immutable `sha-<short-sha>` tag |
 | Scan izvještaj | DevSecOps dokumentacija | `docs/security/image-scan-report.md` | gotovo | opis alata, quality gatea, nalaza, korektivnih mjera i validacije |
@@ -71,9 +71,9 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Runbook za loš image tag | runbook | `docs/runbook.md` | gotovo | rollout failure, image pull, undo rollback |
 | Runbook za neispravan Secret/env | runbook | `docs/runbook.md` | gotovo | Secret/config dijagnostika i korekcija |
 | README za lokalno pokretanje | dokumentacija | `README.md` | gotovo | preduvjeti, startup/shutdown, health, workflow, build, test, linkovi |
-| Arhitektura i međuservisna komunikacija | dokumentacija | `docs/architecture.md` | gotovo | servisne uloge, tokovi, ports, env, security, observability |
+| Arhitektura, međuservisna komunikacija i usporedba s VM pristupom | dokumentacija | `docs/architecture.md` | gotovo | servisne uloge, tokovi, ports, env, security, observability, kontejneri vs VM |
 | Deployment dokumentacija | dokumentacija | `docs/deployment.md` | gotovo | K8s apply, Secret, validation, cleanup, troubleshooting |
-| CI/CD dokumentacija | dokumentacija | `docs/ci-cd.md` | gotovo | workflow, tagging, publish policy, quality gate |
+| CI/CD dokumentacija | dokumentacija | `docs/ci-cd.md` | gotovo | workflow, tagging, publish policy, quality gate, metrika trajanja runa |
 | Finalna checklist tablica | dokumentacija | `docs/final-checklist.md` | gotovo | ova datoteka |
 
 ## Posebna provjera iz radnog plana
@@ -92,7 +92,7 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Resource requests/limits postoje | `k8s/*.yaml` | gotovo | definirani po workloadu |
 | RBAC/service account postoji | `k8s/serviceaccount.yaml`, `k8s/rbac.yaml` | gotovo | least privilege |
 | NetworkPolicy postoji ili je objašnjeno | `k8s/networkpolicy.yaml`, `docs/deployment.md` | gotovo | default deny + dopušteni tokovi |
-| CI/CD postoji | `.github/workflows/ci-devsecops.yml` | gotovo | GitHub Actions |
+| CI/CD postoji | `.github/workflows/ci-devsecops.yml` | gotovo | GitHub Actions; IaC/config gate je blocking |
 | Image scan postoji | `.github/workflows/ci-devsecops.yml`, `docs/security/image-scan-report.md` | gotovo | Trivy |
 | Rolling update/rollback dokumentiran | `docs/rolling-update-rollback.md` | gotovo | naredbe i validacija |
 | Runbook postoji | `docs/runbook.md` | gotovo | 3 scenarija |
@@ -108,7 +108,7 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Rollback | gotovo | rollback vratio image na `ticketing-api:local`, `/readyz` ostao `ready` |
 | Trivy image scan | gotovo | API, frontend i worker: 0 HIGH/CRITICAL vulnerabilities |
 | Trivy config/IaC scan | gotovo | svi Docker/K8s targets: 0 HIGH/CRITICAL misconfigurations |
-| GitHub Actions run | gotovo | workflow run `test #2` završio sa `Success`, 4 artifacta |
+| GitHub Actions run | gotovo | workflow run `test #2` završio sa `Success`, 4 artifacta; nakon završnih izmjena treba ponovno pokrenuti run |
 
 ## Preostali rizici / ograničenja
 
@@ -119,3 +119,6 @@ Ova tablica mapira zahtjeve projekta na implementirane artefakte u repozitoriju.
 | Lokalni `:local` image tagovi u K8s manifestima | ok za lab | u produkciji zamijeniti GHCR/registry tagovima |
 | Compose izlaže PostgreSQL i Redis portove na host | ok za dev | u produkciji su interni ClusterIP servisi i NetworkPolicy |
 | `.env.example` ima demo lozinku | ok za lokalni primjer | produkcija koristi Kubernetes Secret |
+
+| Kriterij kontejneri vs VM za I1 | gotovo | Kontejneri su uspoređeni s virtualnim mašinama u `docs/architecture.md` |
+| Metrika ubrzanja CI/CD za I3 | gotovo | Zadnji validirani run trajao je približno 1m20 i dokumentiran je u `docs/ci-cd.md` |

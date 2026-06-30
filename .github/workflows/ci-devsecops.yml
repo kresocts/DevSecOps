@@ -94,6 +94,16 @@ jobs:
           sarif_file: reports/trivy-config.sarif
           category: trivy-config
 
+      - name: Trivy repository/IaC quality gate
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          hide-progress: true
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
   build-scan-publish:
     name: Build, scan, optional publish ${{ matrix.service }}
     runs-on: ubuntu-24.04
@@ -185,7 +195,7 @@ jobs:
 
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}

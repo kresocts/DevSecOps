@@ -19,7 +19,7 @@ Skeniraju se:
 
 ## Quality gate
 
-Pipeline ruši build ako Trivy image scan pronađe ranjivost razine:
+Pipeline ruši build ako Trivy image scan ili Trivy IaC/config scan pronađe nalaz razine:
 
 ```text
 HIGH
@@ -34,7 +34,7 @@ ignore-unfixed: true
 exit-code: '1'
 ```
 
-`MEDIUM` i `LOW` nalazi se ne koriste kao blokirajući gate u ovoj fazi, ali se trebaju pregledati i evidentirati kao tehnički dug.
+`MEDIUM` i `LOW` nalazi se ne koriste kao blokirajući gate u ovoj fazi, ali se trebaju pregledati i evidentirati kao tehnički dug. Trivy repository/IaC scan ima odvojeni blocking step s `exit-code: '1'` za `HIGH`/`CRITICAL` konfiguracijske nalaze, dok se SARIF izvještaj i dalje sprema kao artifact.
 
 ## Nalazi iz validacije i korektivne mjere
 
@@ -71,6 +71,11 @@ trivy config --severity HIGH,CRITICAL --exit-code 1 .
 ```
 
 Finalni rezultat: `trivy config --severity HIGH,CRITICAL --exit-code 1 .` završio je bez `HIGH`/`CRITICAL` misconfiguration nalaza; svi Dockerfile i Kubernetes targeti u summaryju imaju `0`.
+
+
+## Napomena o lokalnim fallbackovima
+
+Lokalni fallbackovi poput `change_me_local` u API i worker kodu koriste se samo za developer environment i lokalni lab. U Kubernetes deploymentu vrijednosti dolaze iz Kubernetes Secreta i ne smiju se hardkodirati u produkcijskom okruženju.
 
 ## Lokacija izvještaja
 
@@ -128,7 +133,7 @@ trivy image --format sarif --output reports/trivy-worker-image.sarif ticketing-w
 |---|---|
 | Trivy konfiguriran u CI/CD workflowu | gotovo |
 | SARIF report artifacti konfigurirani | gotovo |
-| HIGH/CRITICAL quality gate konfiguriran | gotovo |
+| HIGH/CRITICAL image i IaC/config quality gate konfiguriran | gotovo |
 | Automatski push imagea nakon prolaska gatea | gotovo, samo za `main`, `master` i tagove |
 | Stvarni GitHub Actions run | gotovo, run `test #2` završio je sa `Success` |
 | Finalni scan rezultati | gotovo, lokalni image scan i config scan bez `HIGH`/`CRITICAL` nalaza |

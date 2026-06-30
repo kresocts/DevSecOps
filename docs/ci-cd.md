@@ -33,7 +33,7 @@ Trenutni projekt nema automatizirane testove. Zato je quality gate u ovoj fazi m
 
 ### 2. `trivy-repository-scan`
 
-Trivy skenira Kubernetes/Docker konfiguraciju kroz `scan-type: config` i sprema SARIF izvještaj kao workflow artifact.
+Trivy skenira Kubernetes/Docker konfiguraciju kroz `scan-type: config`, sprema SARIF izvještaj kao workflow artifact i zatim pokreće zaseban blocking quality gate za `HIGH`/`CRITICAL` IaC/config nalaze.
 
 Izvještaj:
 
@@ -41,7 +41,7 @@ Izvještaj:
 trivy-config-sarif
 ```
 
-Ako GitHub code scanning nije dostupan u repozitoriju, upload SARIF-a u Security tab može biti preskočen bez rušenja pipelinea. Artifact se svejedno sprema.
+Ako GitHub code scanning nije dostupan u repozitoriju, upload SARIF-a u Security tab može biti preskočen bez rušenja pipelinea. Artifact se svejedno sprema. Blocking gate ostaje aktivan i ruši job ako Trivy pronađe `HIGH` ili `CRITICAL` misconfiguration.
 
 ### 3. `build-scan-publish`
 
@@ -145,6 +145,23 @@ REGISTRY_TOKEN
 
 Tada treba prilagoditi `REGISTRY` i login step u workflowu.
 
+
+## Validacija GitHub Actions workflowa
+
+Zadnji validirani GitHub Actions run završen je uspješno. Workflow je validirao npm instalaciju, syntax check, npm audit, Docker build, Trivy skeniranje i upload sigurnosnih artifacta.
+
+`actions/upload-artifact@v7` ostaje u workflowu jer je upload artifacta uspješno izvršen i u runu su bila dostupna 4 artifacta. Verzija nije mijenjana jer nema dokaza da taj korak ruši workflow.
+
+`docker/login-action` je ažuriran s `v3` na `v4` zato što je prethodni run prikazao Node.js 20 deprecation warning za `docker/login-action@v3`, a `v4` koristi Node.js 24 runtime. To uklanja poznati warning bez promjene funkcionalnosti login koraka.
+
+## Mjerljiv napredak brzine isporuke
+
+Prije automatizacije, validacija projekta zahtijevala je ručno pokretanje više odvojenih koraka: instalaciju dependencyja za svaki servis, syntax check, npm audit, Docker build za API/frontend/worker, Trivy image scan, Trivy config scan i provjeru Kubernetes manifestâ.
+
+CI/CD workflow te korake izvodi standardizirano u jednom pipelineu. Zadnji uspješni GitHub Actions run trajao je približno 1 minutu i 20 sekundi i generirao sigurnosne artifacte, čime se ručni niz provjera zamjenjuje ponovljivim i bržim procesom.
+
+Time je isporuka ubrzana jer se svaki push automatski validira kroz isti build, security scan i quality gate, umjesto da se provjere izvode ručno i nekonzistentno.
+
 ## Lokalna validacija prije pusha
 
 Minimalna lokalna validacija:
@@ -169,6 +186,12 @@ Lokalni Trivy scan ako je Trivy instaliran. Nakon promjene Dockerfilea preporuč
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-api:local
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-frontend:local
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-worker:local
+```
+
+Lokalni IaC/config quality gate:
+
+```bash
+trivy config --severity HIGH,CRITICAL --exit-code 1 .
 ```
 
 

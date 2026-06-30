@@ -2,6 +2,19 @@
 
 Secure Event Ticketing Platform je višeslojna demo aplikacija za DevOps/DevSecOps laboratorij. Cilj arhitekture je jasno razdvojiti web sloj, API sloj, asinkronu obradu, trajnu pohranu i queue/cache sloj.
 
+
+## Zašto kontejneri umjesto virtualnih mašina
+
+| Kriterij | Kontejneri | Virtualne mašine |
+|---|---|---|
+| Pokretanje | Brže pokretanje jer dijele kernel hosta | Sporije pokretanje jer svaki VM ima vlastiti OS |
+| Potrošnja resursa | Manja potrošnja memorije i diska | Veća potrošnja zbog cijelog guest OS-a |
+| CI/CD | Pogodni za automatizirani build, scan, tagiranje i deploy | Teže ih je brzo graditi, skenirati i distribuirati |
+| Izolacija | Dovoljna za aplikacijske servise uz non-root, minimalne slike i NetworkPolicy | Jača izolacija, ali uz veći operativni trošak |
+| Primjena u ovom projektu | Prikladni za frontend, API, worker, Redis i PostgreSQL u DevSecOps pipelineu | Pretjerani za ovu višeslojnu aplikaciju i sporiji za lokalni razvoj |
+
+Za Secure Event Ticketing Platform kontejneri su bolji izbor jer omogućuju standardizirano lokalno pokretanje kroz Compose, ponovljiv build i skeniranje imagea kroz CI/CD te jednostavan prijenos iste aplikacije na Kubernetes/OpenShift. Virtualne mašine bi dale jaču izolaciju, ali bi povećale vrijeme isporuke, potrošnju resursa i kompleksnost održavanja za ovaj projektni scenarij.
+
 ## Servisi
 
 | Servis | Uloga | Runtime / image | Port | State |
@@ -143,6 +156,11 @@ U Kubernetes okruženju PostgreSQL radi kao `StatefulSet` s PVC-om.
 | `API_BASE_URL` | frontend | API URL koji frontend vraća browseru |
 | `QUEUE_NAME` | API, worker | Redis queue/list name |
 | `NODE_ENV` | frontend, API, worker | runtime mode |
+
+
+### Napomena o lokalnim fallback vrijednostima
+
+Lokalni fallbackovi poput `change_me_local` koriste se samo za developer environment. U Kubernetes deploymentu vrijednosti dolaze iz Secreta i ne smiju se hardkodirati u produkcijskom okruženju.
 
 ## Lokalno okruženje
 
