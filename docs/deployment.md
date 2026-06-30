@@ -198,6 +198,17 @@ NetworkPolicy manifesti rade sljedeće:
 Ako tvoj CNI plugin drugačije tretira egress prema Service IP adresama, možda će trebati prilagoditi egress pravila prema cluster CIDR-u ili CNI dokumentaciji.
 
 
+
+## Incident runbook
+
+Troubleshooting postupci za incidente nalaze se u:
+
+```text
+docs/runbook.md
+```
+
+Runbook pokriva pad PostgreSQL baze, loš image tag i neispravan Secret/env varijablu.
+
 ## Rolling update i rollback
 
 Detaljan postupak za promjenu image taga, praćenje rollout statusa, pregled rollout historyja, rollback i validaciju nalazi se u:

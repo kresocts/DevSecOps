@@ -4,7 +4,7 @@ Sample DevSecOps aplikacija za kontejnerizaciju, lokalni Compose stack, Kubernet
 
 ## Trenutni status repozitorija
 
-Repozitorij nakon **Faze 5** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow i dokumentiran rolling update/rollback postupak za:
+Repozitorij nakon **Faze 6** sadrži aplikacijsku jezgru, Dockerfileove za aplikacijske servise, lokalni Docker/Podman Compose stack, Kubernetes manifeste, GitHub Actions DevSecOps workflow, dokumentiran rolling update/rollback postupak i incident runbook za:
 
 - `frontend`
 - `api`
@@ -16,8 +16,7 @@ Repozitorij nakon **Faze 5** sadrži aplikacijsku jezgru, Dockerfileove za aplik
 - Trivy image/config scan
 - quality gate prije objave imagea
 - rolling update i rollback postupak
-
-Runbook se priprema u kasnijoj fazi.
+- incident runbook za PostgreSQL pad, loš image tag i neispravan Secret/env varijablu
 
 ## Arhitektura aplikacije
 
@@ -214,6 +213,23 @@ docker run --rm ticketing-worker:local id
 
 Očekivano je `uid=1000(node)`.
 
+
+
+## Incident runbook
+
+Operativni runbook za incidente nalazi se u:
+
+```text
+docs/runbook.md
+```
+
+Pokriveni scenariji:
+
+- pad PostgreSQL baze,
+- loš image tag,
+- neispravan Secret ili environment varijabla.
+
+Svaki scenarij sadrži simptom, moguće uzroke, dijagnostičke naredbe, korektivnu mjeru, validaciju i rollback gdje je primjenjivo.
 
 ## CI/CD i DevSecOps
 
