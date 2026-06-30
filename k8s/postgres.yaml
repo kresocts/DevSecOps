@@ -40,6 +40,7 @@ spec:
             runAsUser: 0
             runAsGroup: 0
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           resources:
             requests:
               cpu: 10m
@@ -50,6 +51,8 @@ spec:
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+            - name: postgres-tmp
+              mountPath: /tmp
       containers:
         - name: postgres
           image: postgres:16-alpine
@@ -100,6 +103,7 @@ spec:
             runAsUser: 70
             runAsGroup: 70
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -109,10 +113,18 @@ spec:
             - name: postgres-init
               mountPath: /docker-entrypoint-initdb.d
               readOnly: true
+            - name: postgres-run
+              mountPath: /var/run/postgresql
+            - name: postgres-tmp
+              mountPath: /tmp
       volumes:
         - name: postgres-init
           configMap:
             name: postgres-init
+        - name: postgres-run
+          emptyDir: {}
+        - name: postgres-tmp
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: postgres-data

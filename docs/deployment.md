@@ -251,3 +251,22 @@ kubectl apply -k k8s/
 ```
 
 Ovo briše lokalne PostgreSQL podatke, pa se ne koristi za produkcijsku bazu bez backup/restore plana.
+
+### Trivy KSV-0014 hardening za PostgreSQL i Redis
+
+Ako `trivy config --severity HIGH,CRITICAL --exit-code 1 .` prijavi `KSV-0014` za `k8s/postgres.yaml` ili `k8s/redis.yaml`, manifesti trebaju imati `securityContext.readOnlyRootFilesystem: true` na containerima.
+
+U ovim manifestima to je riješeno tako da:
+
+- PostgreSQL glavni container koristi `readOnlyRootFilesystem: true`, ali i dalje ima writable PVC na `/var/lib/postgresql/data`, writable `emptyDir` na `/var/run/postgresql` i writable `emptyDir` na `/tmp`.
+- PostgreSQL init container `postgres-volume-permissions` također koristi `readOnlyRootFilesystem: true`, ali može pisati u PostgreSQL PVC kako bi pripremio dozvole.
+- Redis container koristi `readOnlyRootFilesystem: true`, a writable direktoriji su izdvojeni u `emptyDir` volume mountove na `/data` i `/tmp`.
+
+Nakon ovog hardeninga ponovno validiraj:
+
+```bash
+trivy config --severity HIGH,CRITICAL --exit-code 1 .
+kubectl apply -k k8s/
+kubectl -n secure-ticketing rollout status statefulset/postgres --timeout=120s
+kubectl -n secure-ticketing rollout status deployment/redis --timeout=120s
+```

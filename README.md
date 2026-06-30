@@ -308,7 +308,7 @@ Faza 4:
 
 ## Poznati rizici nakon Faze 4
 
-- API dependency audit je ranije prijavio jedan `moderate` nalaz; trenutni CI gate blokira `HIGH` i `CRITICAL`, a `MEDIUM` treba evidentirati u security izvještaju.
+- Raniji API `uuid` dependency audit nalaz je saniran nadogradnjom na sigurniju verziju; CI gate i dalje blokira `HIGH` i `CRITICAL`, a eventualni novi `MEDIUM` nalazi trebaju se evidentirati u security izvještaju.
 - Worker nema HTTP health endpoint; u Kubernetes manifestima se koristi `exec` probe strategija.
 - Compose koristi lokalnu demo lozinku iz `.env`; produkcijski deployment mora koristiti Secret.
 - Ingress ovisi o dostupnom ingress controlleru u clusteru.

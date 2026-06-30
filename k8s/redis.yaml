@@ -61,6 +61,17 @@ spec:
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-tmp
+              mountPath: /tmp
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+        - name: redis-tmp
+          emptyDir: {}

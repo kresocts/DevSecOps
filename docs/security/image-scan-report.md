@@ -36,16 +36,41 @@ exit-code: '1'
 
 `MEDIUM` i `LOW` nalazi se ne koriste kao blokirajući gate u ovoj fazi, ali se trebaju pregledati i evidentirati kao tehnički dug.
 
-## Trenutni poznati nalaz iz lokalne validacije
+## Nalazi iz validacije i korektivne mjere
 
-Tijekom lokalne validacije Faze 1 zabilježeno je da API dependency audit prijavljuje jedan `moderate` nalaz. Taj nalaz ne ruši trenutni CI gate jer je gate postavljen na `HIGH` i `CRITICAL`.
+Prva lokalna/GitHub Actions validacija Faze 4 pokazala je da image quality gate radi ispravno: build je zaustavljen kada je Trivy pronašao `HIGH` ranjivosti u runtime imageima.
 
-Prije finalne predaje treba ponovno pokrenuti CI i, ako nalaz i dalje postoji, evidentirati:
+Sažetak nalaza:
 
-- paket koji uzrokuje nalaz,
-- severity,
-- postoji li siguran upgrade,
-- odluku: popraviti odmah ili prihvatiti kao dokumentirani rizik za demo projekt.
+| Izvor nalaza | Severity | Korektivna mjera |
+|---|---:|---|
+| Alpine/OpenSSL paket u `node:20-alpine` runtime imageu | HIGH | dodan `apk upgrade --no-cache` u finalni runtime stage |
+| Globalni `npm`/`yarn`/`corepack` alati iz Node base imagea | HIGH | uklonjeni iz finalnog runtime stagea jer nisu potrebni za pokretanje aplikacije |
+| API `uuid` dependency `<11.1.1` | MEDIUM | nadograđen na `uuid@11.1.1` |
+
+Odluka: ne uvoditi `.trivyignore` za ove nalaze jer postoje korektivne mjere. Quality gate ostaje postavljen na `HIGH`/`CRITICAL` i nastavlja blokirati objavu imagea dok nalaz nije saniran.
+
+Prije finalne predaje treba ponovno pokrenuti lokalni Trivy scan i GitHub Actions run te u ovaj dokument dopisati finalni rezultat.
+
+## IaC/config scan hardening update
+
+Lokalna validacija Faze 4 pronašla je `KSV-0014` `HIGH` misconfiguration nalaze u Kubernetes manifestima za PostgreSQL i Redis. Nalaz se odnosi na izostanak `securityContext.readOnlyRootFilesystem: true`.
+
+Korektivna mjera je primijenjena u manifestima iz Faze 3:
+
+| Datoteka | Nalaz | Korektivna mjera |
+|---|---|---|
+| `k8s/postgres.yaml` | PostgreSQL container bez read-only root filesystema | dodan `readOnlyRootFilesystem: true`; writable putanje izdvojene u PVC/`emptyDir` mountove |
+| `k8s/postgres.yaml` | PostgreSQL init container bez read-only root filesystema | dodan `readOnlyRootFilesystem: true`; writable je samo PostgreSQL PVC i `/tmp` |
+| `k8s/redis.yaml` | Redis container bez read-only root filesystema | dodan `readOnlyRootFilesystem: true`; writable putanje `/data` i `/tmp` izdvojene u `emptyDir` mountove |
+
+Očekivana ponovna validacija:
+
+```bash
+trivy config --severity HIGH,CRITICAL --exit-code 1 .
+```
+
+Očekivani rezultat: bez `HIGH`/`CRITICAL` misconfiguration nalaza.
 
 ## Lokacija izvještaja
 
@@ -65,9 +90,9 @@ Ako je GitHub code scanning dostupan, workflow pokušava učitati iste SARIF nal
 Nakon lokalnog builda:
 
 ```bash
-docker build -t ticketing-api:local ./api
-docker build -t ticketing-frontend:local ./frontend
-docker build -t ticketing-worker:local ./worker
+docker build --no-cache -t ticketing-api:local ./api
+docker build --no-cache -t ticketing-frontend:local ./frontend
+docker build --no-cache -t ticketing-worker:local ./worker
 ```
 
 Pokreni:

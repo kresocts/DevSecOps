@@ -158,15 +158,37 @@ cd worker && npm ci --omit=dev --ignore-scripts && npm audit --omit=dev --audit-
 Lokalni build imagea:
 
 ```bash
-docker build -t ticketing-api:local ./api
-docker build -t ticketing-frontend:local ./frontend
-docker build -t ticketing-worker:local ./worker
+docker build --no-cache -t ticketing-api:local ./api
+docker build --no-cache -t ticketing-frontend:local ./frontend
+docker build --no-cache -t ticketing-worker:local ./worker
 ```
 
-Lokalni Trivy scan ako je Trivy instaliran:
+Lokalni Trivy scan ako je Trivy instaliran. Nakon promjene Dockerfilea preporučeno je koristiti `--no-cache` kod builda kako se ne bi skenirao stari cacheirani sloj:
 
 ```bash
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-api:local
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-frontend:local
 trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ticketing-worker:local
 ```
+
+
+## Korektivne mjere nakon prve CI validacije
+
+Prva validacija Faze 4 pokazala je da GitHub Actions `validate` poslovi prolaze, ali image quality gate ruši build jer Trivy pronalazi `HIGH` ranjivosti u finalnom runtime imageu. Nalozi su bili iz dva izvora:
+
+- Alpine/OpenSSL paket u base imageu,
+- globalni `npm`/`yarn`/`corepack` alati iz službenog Node imagea, koji nisu potrebni za runtime izvršavanje aplikacije.
+
+Korekcija je napravljena u sva tri Dockerfilea:
+
+- finalni runtime stage pokreće `apk upgrade --no-cache`,
+- nakon instalacije sistemskih paketa uklanjaju se `npm`, `npx`, `corepack` i `yarn` iz runtime stagea,
+- dependency install i dalje ostaje u `deps`/`dev` stageovima, pa build i hot reload nisu uklonjeni.
+
+Dodatno je API `uuid` dependency nadograđen sa `10.x` na `11.1.1` kako bi se uklonio raniji `moderate` audit nalaz bez promjene aplikacijske funkcionalnosti.
+
+GitHub Actions deprecation warning za Node 20 action runtime smanjen je nadogradnjom službenih GitHub Actions verzija na generaciju koja koristi Node 24 runtime:
+
+- `actions/checkout@v7`,
+- `actions/setup-node@v6`,
+- `actions/upload-artifact@v7`.
